@@ -1,0 +1,43 @@
+{
+    "name": "mmeshkatian/ariel",
+    "homepage": "https://github.com/mmeshkatian/ariel",
+    "keywords": [
+        "laravel",
+        "iran",
+        "framework",
+        "php",
+        "ariel",
+        "admin",
+        "webservice",
+        "adminpanel",
+        "boilerplate",
+        "easyphp",
+        "fast development"
+    ],
+    "license": "MIT",
+    "description": "best way to create your applications scaffold in easiest way",
+    "authors": [
+        {
+            "name": "MehdiMeshkatianRad",
+            "email": "mmeshkatian@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Mmeshkatian\\Ariel\\": "src/",
+            "Mmeshkatian\\Ariel\\Tests\\": "tests/"
+        }
+    },
+    "require": {},
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Mmeshkatian\\Ariel\\ArielServiceProvider"
+            ],
+            "aliases": {
+                "Ariel": "Mmeshkatian\\Ariel\\Facade"
+            }
+        }
+    },
+    "minimum-stability": "dev"
+}
