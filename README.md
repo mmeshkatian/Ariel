@@ -55,15 +55,23 @@ create your controller by artisan command
 
 open TestArielController placed in App/Http/Controllers then change the controller like below :
 ```php
-	<?php
+<?php
+namespace App\Http\Controllers;
+use Illuminate\Http\Request;
+use Mmeshkatian\Ariel\BaseController;
 
-	namespace App\Http\Controllers;
-	use Illuminate\Http\Request;
-	use Mmeshkatian\Ariel\BaseController;
-
-	class TestArielController extends BaseController
+class TestArielController extends BaseController
 ```
-your controller should extends from Mmeshkatian\Ariel\BaseController
+your controller should extends from Mmeshkatian\Ariel\BaseController .
+ariel use configure method to initialize so create configure method in your controller .
+
+```php
+public function configure()
+    {
+    
+    }
+```
+
 
 
 ## Api Builder
