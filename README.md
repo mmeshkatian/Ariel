@@ -4,10 +4,15 @@
 [![Latest Stable Version](https://poser.pugx.org/mmeshkatian/ariel/v/stable)](https://packagist.org/packages/mmeshkatian/ariel)
 [![Latest Unstable Version](https://poser.pugx.org/mmeshkatian/ariel/v/unstable)](https://packagist.org/packages/mmeshkatian/ariel)
 [![License](https://poser.pugx.org/mmeshkatian/ariel/license)](https://packagist.org/packages/mmeshkatian/ariel)
+[![Awesome Laravel](https://img.shields.io/badge/Awesome-Laravel-brightgreen.svg?style=flat-square)](https://github.com/mmeshkatian/ariel)
 
 
 A simple & light-weight laravel package to manage your webApplications.
+## Requirements
 
+- PHP >= 7.0.0
+- Laravel >= 5.4.0
+ 
 ## Installation
 
 Install the package through [Composer](http://getcomposer.org/). 
@@ -29,3 +34,20 @@ And optionally add a new line to the `aliases` array:
 	'Ariel' => Mmeshkatian\Ariel\Facade::class,
 
 Now you're ready to start using the Ariel in your application.
+
+## Overview
+Look at one of the following topics to learn more about Ariel
+
+* [Configuration](#configuration)
+* [Controller Builder](#controllerBuilder)
+* [Api Builder](#apiBuilder)
+
+## Configuration
+run these commands to publish assets and config：
+
+    php artisan vendor:publish --provider="Mmeshkatian\Ariel\ArielServiceProvider"
+
+
+## Controller Builder
+
+## Api Builder
