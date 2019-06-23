@@ -39,8 +39,8 @@ Now you're ready to start using the Ariel in your application.
 Look at one of the following topics to learn more about Ariel
 
 * [Configuration](#configuration)
-* [Controller Builder](#controllerBuilder)
-* [Api Builder](#apiBuilder)
+* [ControllerBuilder](#controllerBuilder)
+* [ApiBuilder](#apiBuilder)
 
 ## Configuration
 run these commands to publish assets and config：
@@ -49,5 +49,21 @@ run these commands to publish assets and config：
 
 
 ## Controller Builder
+create your controller by artisan command
+
+	php artisan make:controller TestArielController
+
+open TestArielController placed in App/Http/Controllers then change the controller like below :
+```php
+	<?php
+
+	namespace App\Http\Controllers;
+	use Illuminate\Http\Request;
+	use Mmeshkatian\Ariel\BaseController;
+
+	class TestArielController extends BaseController
+```
+your controller should extends from Mmeshkatian\Ariel\BaseController
+
 
 ## Api Builder
