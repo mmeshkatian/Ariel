@@ -72,6 +72,53 @@ public function configure()
     }
 ```
 
+### configure method
+#### variables
+
+| Variable                          | Description                              | Example                          |
+| ----------------------------------| ---------------------------------------- | -------------------------------- |
+| $this->model                      | Define Base Model to work with.          | $this->model = User::class |
+| $this->RoutePrefix     (Optional) | Define your Route prefix.(for "CRUD" auto generation)        | $this->RoutePrefix = 'ariel' |
+
+#### methods
+##### setRoute($route,$name,$params = [])
+Change default auto-generated route.
+
+| Parameter   | Description                                                    |
+|-------------|----------------------------------------------------------------|
+| $route      | Route identifier to change ["save","update","main","create"]   |
+| $name       | Route name defined in your routes/web.php                      |
+| $params     | Optional parameters you may need to pass the route             |
 
 
+```php
+$this->setRoute('index','ariel.user.index',["test"=>"123"]);
+```
+##### addColumn($name,$value)
+Add new column to .index table
+
+| Parameter   | Description                                                              |
+|-------------|--------------------------------------------------------------------------|
+| $name       | Column Header Name                                                       |
+| $value      | Value to use in row -- you can also use helpers described below in here  |
+
+```php
+$this->addColumn('UserName','name');
+```
+# unfinished !
+##### addAction($action,$icon,$caption,$ask = false,$defaultParms = [])
+Add new action infront of each rows in .index table
+
+| Parameter       | Description                                                              |
+|-----------------|--------------------------------------------------------------------------|
+| $action         |  |
+| $icon           |  |
+| $caption        |  |
+| $ask            |  |
+| $defaultParms   |  |
+
+
+```php
+$this->addColumn('UserName','name');
+```
 ## Api Builder
