@@ -34,6 +34,8 @@ And optionally add a new line to the `aliases` array:
 	'Ariel' => Mmeshkatian\Ariel\Facade::class,
 
 Now you're ready to start using the Ariel in your application.
+Persian Simple Usage : [Virgool.io](https://virgool.io/@mmeshkatian/%D8%AA%D9%88%D8%B3%D8%B9%D9%87-%D9%BE%D9%86%D9%84-%D9%85%D8%AF%DB%8C%D8%B1%DB%8C%D8%AA-%D8%A8%D8%A7-laravel-%D9%88-%D9%BE%DA%A9%DB%8C%D8%AC-ariel-j4yubj1qcmbt). 
+English Simple Usage : [medium.com](https://virgool.io/@mmeshkatian/%D8%AA%D9%88%D8%B3%D8%B9%D9%87-%D9%BE%D9%86%D9%84-%D9%85%D8%AF%DB%8C%D8%B1%DB%8C%D8%AA-%D8%A8%D8%A7-laravel-%D9%88-%D9%BE%DA%A9%DB%8C%D8%AC-ariel-j4yubj1qcmbt). 
 
 ## Overview
 Look at one of the following topics to learn more about Ariel
