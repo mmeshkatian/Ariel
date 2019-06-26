@@ -111,20 +111,44 @@ Add new column to .index table
 ```php
 $this->addColumn('UserName','name');
 ```
-# unfinished !
 ##### addAction($action,$icon,$caption,$ask = false,$defaultParms = [])
 Add new action infront of each rows in .index table
 
 | Parameter       | Description                                                              |
 |-----------------|--------------------------------------------------------------------------|
-| $action         |  |
-| $icon           |  |
-| $caption        |  |
-| $ask            |  |
-| $defaultParms   |  |
+| $action         | the last part of your route : ex. edit,destroy,index,etc. |
+| $icon           | html code to show (maybe fontawesome or normal span tag) |
+| $caption        | caption of action |
+| $ask            | set true to show a prompt before open the link |
+| $defaultParms   | default parameters you may send with id parameter |
 
 
 ```php
-$this->addColumn('UserName','name');
+$this->addAction("edit","<i class='fa fa-pencil'></i>,'Edit Post',false,["myparm"=>"1"])
+```
+##### addField($name,$caption,$validationRule='',$type='text',$value = '',$values=[],$process='',$processForce=true,$skip = false)
+Add new Field in create or update view 
+
+| Parameter       | Description                                                              |
+|-----------------|--------------------------------------------------------------------------|
+| $name         | name of your field (should be same as your database field |
+| $caption           | caption to show in view |
+| $validationRule        | your validation rules for this field. you can also use Laravel Rules here. |
+| $type            | your field type . default is text, you can add your specific type in resource/views/vendor/ariel/types  |
+| $value   | default value |
+| $values   | an array of values for select,checkbox,radio or etc. |
+| $process   | name of method to run before storing in db. the result of method will be saved in field of db.|
+| $processForce   | set true to handle your specific process exceptions .|
+| $skip   | if you dont want to save the result in db you may set this field to true .|
+
+
+```php
+$this->addField("title","Post Title","required|min:5",'text');
+$this->addField("type_id","Post Type","required",'select','1',["1"=>"normal","2"=>"special"]);
 ```
 ## Api Builder
+you can also create REST-API with Ariel.
+	
+	php artisan make:controller ApiController
+	
+just create a controller ex. ApiController.then extends it from Mmeshkatian\Ariel\ApiController
