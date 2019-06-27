@@ -141,11 +141,26 @@ Add new Field in create or update view
 | $processForce   | set true to handle your specific process exceptions .|
 | $skip   | if you dont want to save the result in db you may set this field to true .|
 
+###### normal field example : 
 
 ```php
 $this->addField("title","Post Title","required|min:5",'text');
 $this->addField("type_id","Post Type","required",'select','1',["1"=>"normal","2"=>"special"]);
 ```
+###### Process base field example : 
+```php
+public function encryptPassword(Request $request , $value){
+	return bcrypt($value);
+}
+public function configure(){
+	$this->addField("password","YourPassword","required",'password','',[],'encryptPassword');
+}
+```
+##### addHidden($name,$value,$process = null,$forceProcess = false,$skip = false)
+add new hidden field (parameters are same as addField)
+##### addProcess($processName,$force = false,$skip = true)
+add new process field (parameters are same as addField)
+
 ## Api Builder
 you can also create REST-API with Ariel.
 	
