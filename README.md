@@ -45,8 +45,8 @@ Now you're ready to start using the Ariel in your application.
 Look at one of the following topics to learn more about Ariel
 
 * [Configuration](#configuration)
-* [ControllerBuilder](#controllerBuilder)
-* [ApiBuilder](#apiBuilder)
+* [ControllerBuilder](#ControllerBuilder)
+* [ApiBuilder](#ApiBuilder)
 
 ## Configuration
 run these commands to publish assets and config：
@@ -54,7 +54,7 @@ run these commands to publish assets and config：
     php artisan vendor:publish --provider="Mmeshkatian\Ariel\ArielServiceProvider"
 
 
-## Controller Builder
+## ControllerBuilder
 create your controller by artisan command
 
 	php artisan make:controller TestArielController
@@ -161,7 +161,7 @@ add new hidden field (parameters are same as addField)
 ##### addProcess($processName,$force = false,$skip = true)
 add new process field (parameters are same as addField)
 
-## Api Builder
+## ApiBuilder
 you can also create REST-API with Ariel.
 	
 	php artisan make:controller ApiController
