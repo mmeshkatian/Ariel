@@ -167,3 +167,5 @@ you can also create REST-API with Ariel.
 	php artisan make:controller ApiController
 	
 just create a controller ex. ApiController.then extends it from Mmeshkatian\Ariel\ApiController
+
+Made With ❤️
