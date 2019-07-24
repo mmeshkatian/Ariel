@@ -8,6 +8,7 @@ use Auth;
 use Illuminate\Support\Str;
 use Route;
 use File;
+use Schema;
 
 
 class BaseController extends Controller
@@ -35,9 +36,10 @@ class BaseController extends Controller
     public function __call($method,$args)
     {
         if(!method_exists(get_class($this),'configure') ||  !is_callable([get_class($this),'configure']))
-            abort('404','Configure method not found');
+            abort('400','Configure method not found');
         if(!in_array($method,config('ariel.configureMethods'))) {
-            $config = app(get_class($this))->configure();
+            $config = app(get_class($this));
+            $config->configure();
             foreach ($config as $val => $item) {
                 $this->$val = $item;
             }
@@ -71,8 +73,25 @@ class BaseController extends Controller
             $this->createRoute = (new Router($this->RoutePrefix))->getRoute(Router::CREATE,Router::GET);
         else
             $this->createRoute = $this->createUserRoute;
+        $model = $this->model;
+        $query = $model::get();
+
+        if(empty($this->cols)) {
+            $modelInstance = new $model;
+
+            $this->cols = $modelInstance->getFillable();
+            if(empty($this->cols))
+                $this->cols = Schema::getColumnListing($modelInstance->getTable());
 
 
+        }
+        if(empty($this->colNames)){
+            $this->colNames = $this->cols;
+        }
+        if(empty($this->fields))
+            foreach ($this->cols as $i=>$col) {
+                $this->addField($col,$this->colNames[$i] ?? $col);
+            }
 
         return call_user_func_array(array($this, $method), $args);
     }
