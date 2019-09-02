@@ -14,6 +14,7 @@ class BaseController extends Controller
 {
     var $model;
     var $RoutePrefix;
+
     private $colNames = [];
     private $cols = [];
     private $fields = [];
@@ -22,27 +23,32 @@ class BaseController extends Controller
 
     private $mainRoute;
     private $saveRoute;
+    private $editRoute;
     private $updateRoute;
     private $createRoute;
 
-    private $mainUserRoute;
-    private $saveUserRoute;
-    private $updateUserRoute;
-    private $createUserRoute;
 
-
-
-    public function __call($method,$args)
+    private function set($what,$data)
     {
-        if(!method_exists(get_class($this),'configure') ||  !is_callable([get_class($this),'configure']))
-            abort('404','Configure method not found');
-        if(!in_array($method,config('ariel.configureMethods'))) {
-            $config = app(get_class($this))->configure();
-            foreach ($config as $val => $item) {
-                $this->$val = $item;
-            }
-        }
+        $this->$what = $data;
+    }
 
+    public function setModel($model)
+    {
+        $this->set('model',$model);
+    }
+
+    public function configure(){}
+
+
+    public function getConfig()
+    {
+        $this->colNames = [];
+        $this->cols = [];
+        $this->fields = [];
+        $this->actions = [];
+
+        $config = $this->configure();
         if(empty($this->RoutePrefix)) {
             //try to autoConfigure route Names
             $RoutePrefix = \request()->route()->getName();
@@ -52,114 +58,79 @@ class BaseController extends Controller
             $this->RoutePrefix = $RoutePrefix;
         }
 
-        if(empty($this->saveUserRoute))
-            $this->saveRoute = (new Router($this->RoutePrefix))->getSaveRoute();
-        else
-            $this->saveRoute = $this->saveUserRoute;
+        if(empty($this->mainRoute))
+            $this->mainRoute = new ActionContainer($this->RoutePrefix.'.'.Router::INDEX,'');
 
-        if(empty($this->updateUserRoute))
-            $this->updateRoute = (new Router($this->RoutePrefix))->getUpdateRoute($args[0] ?? 0);
-        else
-            $this->updateRoute = $this->updateUserRoute;
+        if(empty($this->saveRoute))
+            $this->saveRoute = new ActionContainer($this->RoutePrefix.'.'.Router::STORE,'');
 
-        if(empty($this->mainUserRoute))
-            $this->mainRoute = (new Router($this->RoutePrefix))->getIndexRoute();
-        else
-            $this->mainRoute = $this->mainUserRoute;
-
-        if(empty($this->createUserRoute))
-            $this->createRoute = (new Router($this->RoutePrefix))->getRoute(Router::CREATE,Router::GET);
-        else
-            $this->createRoute = $this->createUserRoute;
+        if(empty($this->editRoute))
+            $this->editRoute = new ActionContainer($this->RoutePrefix.'.'.Router::EDIT,'');
 
 
+        if(empty($this->updateRoute))
+            $this->updateRoute = new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'');
 
-        return call_user_func_array(array($this, $method), $args);
+        if(empty($this->createRoute))
+            $this->createRoute = new ActionContainer($this->RoutePrefix.'.'.Router::CREATE,'');
+
     }
+
 
     /**
      *
      * configuration functions
      *
      */
-    private function setRoute($route,$name,$params = [])
-    {
-        if(!in_array($route,["save","update","main","create"]))
-            return;
-        $route = $route."UserRoute";
-        $this->$route = (new Router("",$name,$params));
-    }
 
-    private function addColumn($name,$value)
+    protected function addColumn($name,$value)
     {
         $this->colNames[] = $name;
         $this->cols[] = $value;
     }
 
-    private function addAction($action,$icon,$caption,$ask = false,$defaultParms = [])
+    protected function addAction($action,$icon,$caption,$defaultParms = [])
     {
-        $arr = [
-            "action" => (new Router($this->RoutePrefix))->getRoute($action,Router::GET,$defaultParms),
-            "icon" => $icon,
-            "caption" => $caption,
-            "ask" => $ask,
-        ];
-
-        $this->actions [] = (Object) $arr;
+        $this->actions [] = new ActionContainer($action,$icon,$caption,$defaultParms);
     }
 
-    private function addField($name,$caption,$validationRule='',$type='text',$value = '',$values=[],$process='',$processForce=true,$skip = false)
+    protected function addField($name,$caption,$validationRule='',$type='text',$value = '',$values=[],$process='',$processForce=true,$skip = false,$storeSkip = false)
     {
-
-        if($value == '' || empty($value))
-            $value = null;
-
-        $arr = ["caption"=>$caption,"name"=>$name,"type"=>$type,"valid"=>$validationRule,"values"=>$values,"value"=>$value,"process"=>$process,"processForce"=>$processForce,'skip'=>$skip];
-        $fields = $this->fields;
-        if (strpos($arr['valid'] ?? '', 'required') !== false) {
-            $arr['isRequired'] = true;
-        }else{
-            $arr['isRequired'] = false;
-        }
-        $this->fields[] = (Object) $arr;
+        $arr = new FieldContainer($name,$caption,$validationRule,$type,$value,$values,$process,$processForce,$skip,$storeSkip);
+        $this->fields[] = $arr;
     }
 
-    private function addHidden($name,$value,$process = null,$forceProcess = false,$skip = false)
+    protected function addHidden($name,$value,$process = null,$forceProcess = false,$skip = false)
     {
 
         $this->addField($name,"","","hidden",$value,[],$process,$forceProcess,$skip);
     }
 
-    private function addProcess($processName,$force = false,$skip = true)
+    protected function addProcess($processName,$force = false,$skip = true)
     {
         $this->addHidden($processName,"",$processName,$force,$skip);
     }
 
-    private function clear($field = true,$column = true)
-    {
-        if($field)
-            $this->fields = [];
-        if($column)
-            $this->colNames = [];
-        if($column)
-            $this->cols = [];
-    }
-
-    private function validateRequest($request)
+    protected function validateRequest($request)
     {
         $valid = [];
+        $this->getConfig();
         $inArray = config('ariel.inArray');
+
         foreach ($this->fields as $field) {
-
-            if (!empty($field->valid)) {
-
-                $valid[$field->name] = $field->valid;
-
+            if (!empty($field->validationRule)) {
+                if(!empty($field->validationRule['store']) && $this->saveRoute->action == request()->route()->getName()){
+                    $valid[$field->name] = $field->validationRule['store'];
+                }elseif(!empty($field->validationRule['update']) && $this->updateRoute->action == request()->route()->getName()){
+                    $valid[$field->name] = $field->validationRule['update'];
+                }elseif(empty($field->validationRule['store']) && empty($field->validationRule['update'])) {
+                    $valid[$field->name] = $field->validationRule;
+                }
             }
-            if(!empty($field->values) && is_array($field->values) && count($field->values)){
+            if(!empty($field->valuesList) && is_array($field->valuesList) && count($field->valuesList)){
                 //if multichosen
                 //add IN require operation
-                $add = "in:" . implode(",", array_keys($field->values));
+                $add = "in:" . implode(",", array_keys($field->valuesList));
                 $name = $field->name;
                 if(in_array($field->type,$inArray)){
                     $name = $name.'.*';
@@ -176,7 +147,6 @@ class BaseController extends Controller
 
             }
         }
-
         $this->validate($request,$valid);
     }
 
@@ -186,8 +156,10 @@ class BaseController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    private function index(Request $request)
+    public function index(Request $request)
     {
+        $this->getConfig();
+
         $colNames = $this->colNames;
         $cols = $this->cols;
         $fields = $this->fields;
@@ -197,7 +169,7 @@ class BaseController extends Controller
         $actions = $this->actions;
 
 
-        return view('ariel::index',compact('list','colNames','cols','fields','rows','createRoute','actions'));
+        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions'));
     }
 
     /**
@@ -205,11 +177,14 @@ class BaseController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    private function create($data = null) {
+    public function create($data = null) {
+
+        $this->getConfig();
+
         $id = $data->id ?? null;
         $fields = $this->fields;
         $mainRoute = $this->mainRoute;
-        $saveRoute = empty($data) ? $this->saveRoute : $this->updateRoute;
+        $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',['id'=>$id]);
 
         return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data'));
     }
@@ -220,10 +195,11 @@ class BaseController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    private function store(Request $request,$data = null)
+    public function store(Request $request,$data = null,$return = false)
     {
-        $this->validateRequest($request);
+        $this->getConfig();
 
+        $this->validateRequest($request);
 
         if(!empty($data)){
             $data = $this->model::where("id",$data->id);
@@ -240,8 +216,14 @@ class BaseController extends Controller
             $process = null;
 
             try{
+
+                //handle skip
+                if ((!empty($field->skip) && $field->skip == true))
+                    continue;
+
                 //handle Process
                 if (!empty($field->process)) {
+
                     try {
                         $process = $field->process;
                         $thisValue = $this->$process($request, $request->input($field->name));
@@ -252,10 +234,13 @@ class BaseController extends Controller
                         }
                     }
                 }
-
-                //handle skip & disable form
-                if ((!empty($field->skip) && $field->skip == true) || (!empty($field->type) && $field->type == 'disable'))
+                if((!empty($field->type) && $field->type == 'disable'))
                     continue;
+
+                if ((!empty($field->storeSkip) && $field->storeSkip == true))
+                    continue;
+
+
 
                 //handle hidden fields
                 if (!empty($field->type) && $field->type == 'hidden') {
@@ -286,24 +271,52 @@ class BaseController extends Controller
 
                 } elseif (is_array($request->input($name))) {
 
-                    $data->$name = json_encode($request->input($name));
+                    $data->$name = (empty($thisValue)) ? json_encode($request->input($name)) : $thisValue;
 
-                }else {
-                    $data->$name = (empty($exp)) ? $request->input($name) : $exp;
-                }
+                }elseif (!empty($field->type) && $field->type == 'password') {
+                    if(!empty($thisValue) || !empty($request->input($name))){
+                        $data->$name = (empty($thisValue)) ? $request->input($name) : $thisValue;
+                    }
+                }else{
+                        $data->$name = (empty($thisValue)) ? $request->input($name) : $thisValue;
+                    }
 
 
             }catch (\Exception $e){
-                dd($e);
+                if(config('app.debug'))
+                    dd($e);
+                else
+                    abort(500);
             }
         }
         try {
             $data->save();
 
-            return redirect($this->mainRoute->getUrl())->with(config('ariel.success_alert'), trans('ariel::ariel.success_text'));
+            foreach ($this->fields as $field) {
+                if ((!empty($field->skip) && $field->skip == true)){
+                    if (!empty($field->process)) {
+
+                        try {
+                            $process = $field->process;
+                            $thisValue = $this->$process($request, $request->input($field->name),$data);
+                        } catch (\Exception $e) {
+                            //
+                            if (!empty($field->processForce)) {
+                                return redirect()->back()->with(config('ariel.danger_alert'),__($field->caption." Process failed."));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if($return){
+                return $data;
+            }else{
+                return redirect($this->mainRoute->getUrl())->with(config('ariel.success_alert'), trans('ariel::ariel.success_text'));
+            }
         }catch (\Exception $e){
-            //dd(config('ariel.danger_alert'),trans('Ariel::ariel.success_text'));
-            if(true)
+
+            if(config('app.debug'))
                 dd($e);
             else
                 return redirect($this->mainRoute->getUrl())->with(config('ariel.danger_alert'), trans('ariel::ariel.exception_text'));
@@ -317,8 +330,9 @@ class BaseController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    private function show($id)
+    public function show($id)
     {
+        $this->getConfig();
         return $this->edit($id);
     }
 
@@ -328,8 +342,10 @@ class BaseController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    private function edit($id)
+    public function edit($id)
     {
+        $this->getConfig();
+
         $data = $this->model::where("id",$id);
         if($data->count() == 0)
             return abort(404);
@@ -344,8 +360,10 @@ class BaseController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    private function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
+        $this->getConfig();
+
         $data = $this->model::where("id",$id);
         if($data->count() == 0)
             return abort(404);
@@ -360,8 +378,10 @@ class BaseController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    private function destroy($id)
+    public function destroy($id)
     {
+        $this->getConfig();
+
         $data = $this->model::where("id",$id);
         if($data->count() == 0)
             return abort(404);
