@@ -197,7 +197,7 @@ class BaseController extends Controller
         $actions = $this->actions;
 
 
-        return view('ariel::index',compact('list','colNames','cols','fields','rows','createRoute','actions'));
+        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions'));
     }
 
     /**
