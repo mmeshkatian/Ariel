@@ -8,7 +8,6 @@ use Auth;
 use Illuminate\Support\Str;
 use Route;
 use File;
-use Schema;
 
 
 class BaseController extends Controller
@@ -36,10 +35,9 @@ class BaseController extends Controller
     public function __call($method,$args)
     {
         if(!method_exists(get_class($this),'configure') ||  !is_callable([get_class($this),'configure']))
-            abort('400','Configure method not found');
+            abort('404','Configure method not found');
         if(!in_array($method,config('ariel.configureMethods'))) {
-            $config = app(get_class($this));
-            $config->configure();
+            $config = app(get_class($this))->configure();
             foreach ($config as $val => $item) {
                 $this->$val = $item;
             }
@@ -73,25 +71,8 @@ class BaseController extends Controller
             $this->createRoute = (new Router($this->RoutePrefix))->getRoute(Router::CREATE,Router::GET);
         else
             $this->createRoute = $this->createUserRoute;
-        $model = $this->model;
-        $query = $model::get();
-
-        if(empty($this->cols)) {
-            $modelInstance = new $model;
-
-            $this->cols = $modelInstance->getFillable();
-            if(empty($this->cols))
-                $this->cols = Schema::getColumnListing($modelInstance->getTable());
 
 
-        }
-        if(empty($this->colNames)){
-            $this->colNames = $this->cols;
-        }
-        if(empty($this->fields))
-            foreach ($this->cols as $i=>$col) {
-                $this->addField($col,$this->colNames[$i] ?? $col);
-            }
 
         return call_user_func_array(array($this, $method), $args);
     }
@@ -239,7 +220,7 @@ class BaseController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    private function store(Request $request,$data = null)
+    private function store(Request $request,$data = null,$return = false)
     {
         $this->validateRequest($request);
 
@@ -261,6 +242,7 @@ class BaseController extends Controller
             try{
                 //handle Process
                 if (!empty($field->process)) {
+
                     try {
                         $process = $field->process;
                         $thisValue = $this->$process($request, $request->input($field->name));
@@ -319,10 +301,14 @@ class BaseController extends Controller
         try {
             $data->save();
 
-            return redirect($this->mainRoute->getUrl())->with(config('ariel.success_alert'), trans('ariel::ariel.success_text'));
+            if($return){
+                return $data;
+            }else{
+                return redirect($this->mainRoute->getUrl())->with(config('ariel.success_alert'), trans('ariel::ariel.success_text'));
+            }
         }catch (\Exception $e){
             //dd(config('ariel.danger_alert'),trans('Ariel::ariel.success_text'));
-            if(true)
+            if(config('app.debug'))
                 dd($e);
             else
                 return redirect($this->mainRoute->getUrl())->with(config('ariel.danger_alert'), trans('ariel::ariel.exception_text'));
