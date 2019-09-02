@@ -308,7 +308,7 @@ class BaseController extends Controller
                     $data->$name = json_encode($request->input($name));
 
                 }else {
-                    $data->$name = (empty($exp)) ? $request->input($name) : $exp;
+                    $data->$name = (empty($thisValue)) ? $request->input($name) : $thisValue;
                 }
 
 
