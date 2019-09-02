@@ -240,6 +240,11 @@ class BaseController extends Controller
             $process = null;
 
             try{
+
+                //handle skip & disable form
+                if ((!empty($field->skip) && $field->skip == true) || (!empty($field->type) && $field->type == 'disable'))
+                    continue;
+
                 //handle Process
                 if (!empty($field->process)) {
 
@@ -254,9 +259,7 @@ class BaseController extends Controller
                     }
                 }
 
-                //handle skip & disable form
-                if ((!empty($field->skip) && $field->skip == true) || (!empty($field->type) && $field->type == 'disable'))
-                    continue;
+
 
                 //handle hidden fields
                 if (!empty($field->type) && $field->type == 'hidden') {
@@ -300,6 +303,22 @@ class BaseController extends Controller
         }
         try {
             $data->save();
+            foreach ($this->fields as $field) {
+                if ((!empty($field->skip) && $field->skip == true)){
+                    if (!empty($field->process)) {
+
+                        try {
+                            $process = $field->process;
+                            $thisValue = $this->$process($request, $request->input($field->name),$data);
+                        } catch (\Exception $e) {
+                            //
+                            if (!empty($field->processForce)) {
+                                return redirect()->back()->with(config('ariel.danger_alert'),__($field->caption." Process failed."));
+                            }
+                        }
+                    }
+                }
+            }
 
             if($return){
                 return $data;
