@@ -1,4 +1,12 @@
 language: php
-
+install:
+    composer install
 php:
   - 7.1
+
+script:
+  - mkdir -p build/logs
+  - php vendor/bin/phpunit -c phpunit.xml
+
+after_script:
+  - php vendor/bin/coveralls -v
