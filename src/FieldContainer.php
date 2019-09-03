@@ -26,6 +26,7 @@ class FieldContainer
         $this->type = $type;
         $this->defaultValue = $defaultValue;
         $this->valuesList = $valuesList;
+        $this->process = $process;
         $this->forceProcess = $forceProcess;
         $this->skip = $skip;
         $this->storeSkip = $storeSkip;

@@ -19,6 +19,8 @@ class BaseController extends Controller
     private $cols = [];
     private $fields = [];
     private $actions = [];
+    private $queryConditions = [];
+    private $ListData = null;
     private $router;
 
     private $mainRoute;
@@ -88,10 +90,18 @@ class BaseController extends Controller
         $this->colNames[] = $name;
         $this->cols[] = $value;
     }
-
-    protected function addAction($action,$icon,$caption,$defaultParms = [])
+    protected function addQueryCondition($function,$data)
     {
-        $this->actions [] = new ActionContainer($action,$icon,$caption,$defaultParms);
+        $this->queryConditions[] = ["function" => $function,"data" => $data];
+    }
+    protected function setListData($data)
+    {
+        $this->ListData = $data;
+    }
+
+    protected function addAction($action,$icon,$caption,$defaultParms = [],$accessControlMethod = null)
+    {
+        $this->actions [] = new ActionContainer($action,$icon,$caption,$defaultParms,$accessControlMethod);
     }
 
     protected function addField($name,$caption,$validationRule='',$type='text',$value = '',$values=[],$process='',$processForce=true,$skip = false,$storeSkip = false)
@@ -165,7 +175,25 @@ class BaseController extends Controller
         $fields = $this->fields;
         $model = $this->model;
         $createRoute = $this->createRoute;
-        $rows = $model::get();
+        if(!empty($this->ListData)){
+            $rows = $this->ListData;
+        }else {
+            $rows = $model::where("id", "!=", "N");
+            foreach ($this->queryConditions as $queryCondition) {
+                if(!empty($queryCondition['function'])) {
+                    $function = $queryCondition['function'];
+
+                    if(!empty($queryCondition['data'])){
+                        $rows = $rows->$function(...($queryCondition['data']));
+                    }else{
+                        $rows = $rows->$function();
+                    }
+                }
+            }
+            $rows = $rows->get();
+        }
+
+
         $actions = $this->actions;
 
 
@@ -181,7 +209,7 @@ class BaseController extends Controller
 
         $this->getConfig();
 
-        $id = $data->id ?? null;
+        $id = $data->uuid ?? $data->id ?? null;
         $fields = $this->fields;
         $mainRoute = $this->mainRoute;
         $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',['id'=>$id]);
@@ -202,7 +230,11 @@ class BaseController extends Controller
         $this->validateRequest($request);
 
         if(!empty($data)){
-            $data = $this->model::where("id",$data->id);
+            if(is_numeric($data->id))
+                $data = $this->model::where("id",$data->id);
+            else
+                $data = $this->model::where("uuid",$data->id);
+
             if($data->count() == 0)
                 return abort(404);
             $data = $data->get()->first();
@@ -345,8 +377,11 @@ class BaseController extends Controller
     public function edit($id)
     {
         $this->getConfig();
+        if(is_numeric($id))
+            $data = $this->model::where("id",$id);
+        else
+            $data = $this->model::where("uuid",$id);
 
-        $data = $this->model::where("id",$id);
         if($data->count() == 0)
             return abort(404);
         $data = $data->get()->first();
@@ -364,7 +399,10 @@ class BaseController extends Controller
     {
         $this->getConfig();
 
-        $data = $this->model::where("id",$id);
+        if(is_numeric($id))
+            $data = $this->model::where("id",$id);
+        else
+            $data = $this->model::where("uuid",$id);
         if($data->count() == 0)
             return abort(404);
         $data = $data->get()->first();
@@ -382,7 +420,11 @@ class BaseController extends Controller
     {
         $this->getConfig();
 
-        $data = $this->model::where("id",$id);
+        if(is_numeric($id))
+            $data = $this->model::where("id",$id);
+        else
+            $data = $this->model::where("uuid",$id);
+
         if($data->count() == 0)
             return abort(404);
         $data = $data->get()->first();

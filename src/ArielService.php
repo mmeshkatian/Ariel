@@ -20,13 +20,4 @@ class ArielService
         }
         return false;
     }
-
-    public function Resource($name,$controller)
-    {
-        \Route::resource($name, $controller);
-        \Route::get($name.'/{id}/destroy',$controller.'@destroy')->name($name.'.'.Router::DESTROY);
-
-    }
-
-
 }

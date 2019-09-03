@@ -14,7 +14,7 @@ class ActionContainer
     var $url;
     var $defaultParms;
 
-    public function __construct($action,$icon,$caption = '',$defaultParms = [])
+    public function __construct($action,$icon = '',$caption = '',$defaultParms = [],$accessControlMethod = null)
     {
         $this->router = \Route::getRoutes()->getByName($action);
         $this->action = $this->router->getName();
@@ -22,6 +22,7 @@ class ActionContainer
         $this->icon = $icon;
         $this->caption = $caption;
         $this->defaultParms = $defaultParms;
+        $this->accessControlMethod = $accessControlMethod;
         //$this->url = $this->getUrl();
     }
 
@@ -29,6 +30,13 @@ class ActionContainer
     {
         $this->defaultParms[$param] = $value;
         return $this;
+    }
+
+    public function hasAccess($row)
+    {
+        if(!empty($this->accessControlMethod) && is_callable($this->accessControlMethod)){
+            return ($this->accessControlMethod)($this->action,$row);
+        }else return true;
     }
 
     public function isGet()
