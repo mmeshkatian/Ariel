@@ -22,12 +22,14 @@ class BaseController extends Controller
     private $queryConditions = [];
     private $ListData = null;
     private $router;
+    private $title = '';
 
     private $mainRoute;
     private $saveRoute;
     private $editRoute;
     private $updateRoute;
     private $createRoute;
+    private $isConfigCalled = false;
 
 
     private function set($what,$data)
@@ -39,18 +41,40 @@ class BaseController extends Controller
     {
         $this->set('model',$model);
     }
+    public function setTitle($title)
+    {
+        $this->set('title',$title);
+    }
 
     public function configure(){}
 
 
     public function getConfig()
     {
+        if($this->isConfigCalled)
+            return;
+
+        $this->isConfigCalled = true;
+
+
+        $colNames = $this->colNames;
+        $cols = $this->cols;
+        $fields = $this->fields;
+        $actions = $this->actions;
+
         $this->colNames = [];
         $this->cols = [];
         $this->fields = [];
         $this->actions = [];
 
         $config = $this->configure();
+
+        $this->colNames = array_merge($this->colNames,$colNames);
+        $this->cols = array_merge($this->cols,$cols);
+        $this->fields = array_merge($this->fields,$fields);
+        $this->actions = array_merge($this->actions,$actions);
+
+
         if(empty($this->RoutePrefix)) {
             //try to autoConfigure route Names
             $RoutePrefix = \request()->route()->getName();
@@ -99,9 +123,9 @@ class BaseController extends Controller
         $this->ListData = $data;
     }
 
-    protected function addAction($action,$icon,$caption,$defaultParms = [],$accessControlMethod = null)
+    protected function addAction($action,$icon,$caption,$defaultParms = [],$accessControlMethod = null,$options = [])
     {
-        $this->actions [] = new ActionContainer($action,$icon,$caption,$defaultParms,$accessControlMethod);
+        $this->actions [] = new ActionContainer($action,$icon,$caption,$defaultParms,$accessControlMethod,$options);
     }
 
     protected function addField($name,$caption,$validationRule='',$type='text',$value = '',$values=[],$process='',$processForce=true,$skip = false,$storeSkip = false)
@@ -190,14 +214,37 @@ class BaseController extends Controller
                     }
                 }
             }
-            $rows = $rows->get();
+
         }
 
+        if($request->input('trash') == '1'){
+
+            try {
+                $rows = $rows->onlyTrashed();
+            }catch (\Exception $e){
+                $rows = $rows->where("id","NN");
+            }
+            $this->actions = [];
+            if(\Route::has($this->RoutePrefix.'.destroy')) {
+
+                $this->addAction($this->RoutePrefix . '.destroy', '<i class="feather icon-refresh-cw"></i>', 'Restore', ['restore' => '1'], null, ['class' => 'ask']);
+                $user = \Auth::guard('internal_users')->user();
+                if ($user->hasRole('SuperAdmin'))
+                    $this->addAction($this->RoutePrefix . '.destroy', '<i class="feather icon-trash"></i>', 'Permanent Delete', ['perm' => '1'], null, ['class' => 'ask']);
+            }
+        }
+        $rows = $rows->get();
 
         $actions = $this->actions;
 
 
-        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions'));
+        $breadcrumbs = [
+            ['name'=>'Deartime Administration','link'=>route('admin.dashboard.main')],
+            ['name'=>$this->title,'link'=>$this->mainRoute],
+            ['name'=>$this->title.' List','link'=>url()->current()],
+        ];
+        $title = $this->title.' List';
+        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions','breadcrumbs','title'));
     }
 
     /**
@@ -213,8 +260,13 @@ class BaseController extends Controller
         $fields = $this->fields;
         $mainRoute = $this->mainRoute;
         $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',['id'=>$id]);
-
-        return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data'));
+        $breadcrumbs = [
+            ['name'=>'Deartime Administration','link'=>route('admin.dashboard.main')],
+            ['name'=>$this->title,'link'=>$this->mainRoute],
+            ['name'=> (empty($data) ? 'Create a ' : 'Edit ').$this->title,'link'=>url()->current()],
+        ];
+        $title = (empty($data) ? 'Create a ' : 'Edit ').$this->title;
+        return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data','breadcrumbs','title'));
     }
 
     /**
@@ -242,6 +294,7 @@ class BaseController extends Controller
             $data = new $this->model();
         }
 
+        $foriegnDataTable = [];
         foreach ($this->fields as $field) {
             $thisValue = null;
             $name = $field->name ?? null;
@@ -271,8 +324,6 @@ class BaseController extends Controller
 
                 if ((!empty($field->storeSkip) && $field->storeSkip == true))
                     continue;
-
-
 
                 //handle hidden fields
                 if (!empty($field->type) && $field->type == 'hidden') {
@@ -313,7 +364,15 @@ class BaseController extends Controller
                         $data->$name = (empty($thisValue)) ? $request->input($name) : $thisValue;
                     }
 
+                if(\Ariel::exists($field->name,"__hasone__")){
 
+                    $relName = explode("__hasone__",$field->name);
+                    $namee = $relName[0] ?? '';
+                    $key = $relName[1] ?? '';
+
+                    $foriegnDataTable[$namee.'|'.$key] = $data->$name ;
+                    unset($data->$name);
+                }
             }catch (\Exception $e){
                 if(config('app.debug'))
                     dd($e);
@@ -321,10 +380,43 @@ class BaseController extends Controller
                     abort(500);
             }
         }
+
         try {
             $data->save();
-
+            $foriegnData = [];
             foreach ($this->fields as $field) {
+                //handle hasone relations
+                if(\Ariel::exists($field->name,"__hasone__")){
+                    $relName = explode("__hasone__",$field->name);
+                    $name = $relName[0] ?? '';
+                    $key = $relName[1] ?? '';
+                    if(empty($name) || empty($key))
+                        continue;
+
+
+                    $ForeignKeyName = $data->$name() ?? '';
+                    if(empty($ForeignKeyName))
+                        continue;
+                    $ForeignKeyName = $ForeignKeyName->getForeignKeyName();
+
+                    $Related = $data->$name()->getRelated();
+                    $ParentKey = $data->$name()->getLocalKeyName();
+
+                    if(empty($foriegnData[$name])) {
+                        $foriegnData[$name] = $Related->where($ForeignKeyName, $data->$ParentKey)->get()->first();
+
+                        if (empty($foriegnData[$name]))
+                            $foriegnData[$name] = new $Related();
+                    }
+
+
+                    $foriegnData[$name]->$ForeignKeyName = $data->$ParentKey;
+                    $foriegnData[$name]->$key = $foriegnDataTable[$name.'|'.$key] ?? null;
+//                    $foriegnData[$name]->save();
+
+
+                }
+
                 if ((!empty($field->skip) && $field->skip == true)){
                     if (!empty($field->process)) {
 
@@ -339,6 +431,9 @@ class BaseController extends Controller
                         }
                     }
                 }
+            }
+            foreach ($foriegnData as $fd) {
+                $fd->save();
             }
 
             if($return){
@@ -376,6 +471,7 @@ class BaseController extends Controller
      */
     public function edit($id)
     {
+
         $this->getConfig();
         if(is_numeric($id))
             $data = $this->model::where("id",$id);
@@ -416,9 +512,35 @@ class BaseController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Request $request,$id)
     {
         $this->getConfig();
+        if($request->input('restore') == '1' || $request->input('perm') == '1'){
+            try {
+                if (is_numeric($id))
+                    $data = $this->model::where("id", $id)->withTrashed();
+                else
+                    $data = $this->model::where("uuid", $id)->withTrashed();
+            }catch (\Exception $e){
+                return abort(404);
+            }
+            if($data->count() == 0)
+                return abort(404);
+
+            $data = $data->get()->first();
+
+            if($request->input('restore') == '1')
+                $data->restore();
+            else{
+                $user = \Auth::guard('internal_users')->user();
+                if($user->hasRole('SuperAdmin'))
+                    $data->forceDelete();
+                else abort("403");
+            }
+
+
+            return redirect()->back()->with("success",trans('ariel::ariel.success_text'));
+        }
 
         if(is_numeric($id))
             $data = $this->model::where("id",$id);
@@ -429,6 +551,6 @@ class BaseController extends Controller
             return abort(404);
         $data = $data->get()->first();
         $data->delete();
-        return redirect()->back()->with("success",trans('ariel.success_text'));
+        return redirect()->back()->with("success",trans('ariel::ariel.success_text'));
     }
 }

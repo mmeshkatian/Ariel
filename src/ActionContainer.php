@@ -13,8 +13,9 @@ class ActionContainer
     var $caption;
     var $url;
     var $defaultParms;
+    var $options;
 
-    public function __construct($action,$icon = '',$caption = '',$defaultParms = [],$accessControlMethod = null)
+    public function __construct($action,$icon = '',$caption = '',$defaultParms = [],$accessControlMethod = null,$options = [])
     {
         $this->router = \Route::getRoutes()->getByName($action);
         $this->action = $this->router->getName();
@@ -23,12 +24,14 @@ class ActionContainer
         $this->caption = $caption;
         $this->defaultParms = $defaultParms;
         $this->accessControlMethod = $accessControlMethod;
+        $this->options = $options;
         //$this->url = $this->getUrl();
     }
 
     public function addParam($param,$value)
     {
         $this->defaultParms[$param] = $value;
+        $this->defaultParms = array_reverse($this->defaultParms);
         return $this;
     }
 
