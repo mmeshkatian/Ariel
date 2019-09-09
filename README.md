@@ -9,7 +9,7 @@
 [![Latest Unstable Version](https://poser.pugx.org/mmeshkatian/ariel/v/unstable)](https://packagist.org/packages/mmeshkatian/ariel)
 [![License](https://poser.pugx.org/mmeshkatian/ariel/license)](https://packagist.org/packages/mmeshkatian/ariel)
 [![Awesome Laravel](https://img.shields.io/badge/Awesome-Laravel-brightgreen.svg)](https://github.com/mmeshkatian/ariel)
-
+[![Build Status](https://travis-ci.org/mmeshkatian/Ariel.svg?branch=master)](https://travis-ci.org/mmeshkatian/Ariel)
 
 A simple & light-weight laravel package to manage your webApplications.
 ## Requirements
