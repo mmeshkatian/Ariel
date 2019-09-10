@@ -7,10 +7,10 @@ use Exception;
 class ApiException extends Exception
 {
     public $msg = '';
-    public $status = 422;
+    public $status = 400;
     public $extraDetails = [];
 
-    public function __construct($msg = null,$status = 422,$extraDetails = [])
+    public function __construct($msg = null,$status = 400,$extraDetails = [])
     {
         parent::__construct($msg ?? 'Somthing Bad Happend.');
 
