@@ -23,6 +23,9 @@ class BaseController extends Controller
     private $ListData = null;
     private $router;
     private $title = '';
+    private $BladeSettings = [];
+    private $isSingleRow = false;
+
 
     private $mainRoute;
     private $saveRoute;
@@ -31,8 +34,7 @@ class BaseController extends Controller
     private $createRoute;
     private $isConfigCalled = false;
 
-
-    private function set($what,$data)
+    protected function set($what,$data)
     {
         $this->$what = $data;
     }
@@ -45,6 +47,13 @@ class BaseController extends Controller
     {
         $this->set('title',$title);
     }
+    public function addBladeSetting($key,$value)
+    {
+        $settings = $this->BladeSettings;
+        $settings[$key] = $value;
+        $this->set('BladeSettings',$settings);
+
+    }
 
     public function configure(){}
 
@@ -53,15 +62,11 @@ class BaseController extends Controller
     {
         if($this->isConfigCalled)
             return;
-
         $this->isConfigCalled = true;
-
-
         $colNames = $this->colNames;
         $cols = $this->cols;
         $fields = $this->fields;
         $actions = $this->actions;
-
         $this->colNames = [];
         $this->cols = [];
         $this->fields = [];
@@ -73,8 +78,6 @@ class BaseController extends Controller
         $this->cols = array_merge($this->cols,$cols);
         $this->fields = array_merge($this->fields,$fields);
         $this->actions = array_merge($this->actions,$actions);
-
-
         if(empty($this->RoutePrefix)) {
             //try to autoConfigure route Names
             $RoutePrefix = \request()->route()->getName();
@@ -199,6 +202,11 @@ class BaseController extends Controller
         $fields = $this->fields;
         $model = $this->model;
         $createRoute = $this->createRoute;
+        if($this->isSingleRow) {
+            $data = $model::get()->first();
+            return $this->create($data);
+        }
+
         if(!empty($this->ListData)){
             $rows = $this->ListData;
         }else {
@@ -228,23 +236,24 @@ class BaseController extends Controller
             if(\Route::has($this->RoutePrefix.'.destroy')) {
 
                 $this->addAction($this->RoutePrefix . '.destroy', '<i class="feather icon-refresh-cw"></i>', 'Restore', ['restore' => '1'], null, ['class' => 'ask']);
-                $user = \Auth::guard('internal_users')->user();
-                if ($user->hasRole('SuperAdmin'))
-                    $this->addAction($this->RoutePrefix . '.destroy', '<i class="feather icon-trash"></i>', 'Permanent Delete', ['perm' => '1'], null, ['class' => 'ask']);
+                $this->addAction($this->RoutePrefix . '.destroy', '<i class="feather icon-trash"></i>', 'Permanent Delete', ['perm' => '1'], null, ['class' => 'ask']);
             }
         }
         $rows = $rows->get();
 
         $actions = $this->actions;
-
-
         $breadcrumbs = [
-            ['name'=>'Deartime Administration','link'=>route('admin.dashboard.main')],
+            ['name'=>'Administration','link'=>route('admin.dashboard.main')],
             ['name'=>$this->title,'link'=>$this->mainRoute],
             ['name'=>$this->title.' List','link'=>url()->current()],
         ];
         $title = $this->title.' List';
-        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions','breadcrumbs','title'));
+        $mainRoute = $this->mainRoute;
+        $saveRoute = $this->saveRoute;
+        $data = null;
+        $BladeSettings = $this->BladeSettings;
+
+        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions','mainRoute','saveRoute','data','BladeSettings','title'));
     }
 
     /**
@@ -260,13 +269,14 @@ class BaseController extends Controller
         $fields = $this->fields;
         $mainRoute = $this->mainRoute;
         $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',['id'=>$id]);
+        $BladeSettings = $this->BladeSettings;
         $breadcrumbs = [
-            ['name'=>'Deartime Administration','link'=>route('admin.dashboard.main')],
+            ['name'=>'Administration','link'=>route('admin.dashboard.main')],
             ['name'=>$this->title,'link'=>$this->mainRoute],
             ['name'=> (empty($data) ? 'Create a ' : 'Edit ').$this->title,'link'=>url()->current()],
         ];
         $title = (empty($data) ? 'Create a ' : 'Edit ').$this->title;
-        return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data','breadcrumbs','title'));
+        return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data','breadcrumbs','title','BladeSettings'));
     }
 
     /**
@@ -337,7 +347,7 @@ class BaseController extends Controller
 
                     if (!empty($file)) {
                         if (!empty($data->$name)) {
-                           //delete old
+                            //delete old
                             if(config('ariel.delete_old_files'))
                                 File::delete(config('ariel.upload_path').'/'.$data->$name);
                         }
@@ -361,8 +371,8 @@ class BaseController extends Controller
                         $data->$name = (empty($thisValue)) ? $request->input($name) : $thisValue;
                     }
                 }else{
-                        $data->$name = (empty($thisValue)) ? $request->input($name) : $thisValue;
-                    }
+                    $data->$name = (empty($thisValue)) ? $request->input($name) : $thisValue;
+                }
 
                 if(\Ariel::exists($field->name,"__hasone__")){
 
@@ -380,7 +390,6 @@ class BaseController extends Controller
                     abort(500);
             }
         }
-
         try {
             $data->save();
             $foriegnData = [];
@@ -416,7 +425,6 @@ class BaseController extends Controller
 
 
                 }
-
                 if ((!empty($field->skip) && $field->skip == true)){
                     if (!empty($field->process)) {
 
@@ -435,7 +443,6 @@ class BaseController extends Controller
             foreach ($foriegnData as $fd) {
                 $fd->save();
             }
-
             if($return){
                 return $data;
             }else{
@@ -471,7 +478,6 @@ class BaseController extends Controller
      */
     public function edit($id)
     {
-
         $this->getConfig();
         if(is_numeric($id))
             $data = $this->model::where("id",$id);
@@ -532,10 +538,7 @@ class BaseController extends Controller
             if($request->input('restore') == '1')
                 $data->restore();
             else{
-                $user = \Auth::guard('internal_users')->user();
-                if($user->hasRole('SuperAdmin'))
-                    $data->forceDelete();
-                else abort("403");
+                $data->forceDelete();
             }
 
 
