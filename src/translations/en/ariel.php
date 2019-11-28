@@ -1,5 +1,5 @@
 <?php
 return [
-    'success_text'=>'Operation Successful !',
-    'exception_text'=>'Something bad happend ! for more information please set app.debug => true',
+    'success_text'=>'عملیات با موفقیت انجام شد',
+    'exception_text'=>'خطایی رخ داد ! لطفا با پشتیبانی تماس بگیرید',
 ];

@@ -31,8 +31,59 @@ class FieldContainer
         $this->forceProcess = $forceProcess;
         $this->skip = $skip;
         $this->storeSkip = $storeSkip;
-        $this->isRequired = !is_array($this->validationRule) ? (strpos(($this->validationRule), 'required') !== false) : false;
+        $this->isRequired = !is_array($this->validationRule) ? (strpos(($this->validationRule), 'required') !== false) : in_array('required',$this->validationRule);
+        if(!empty($this->validationRule['store']) || !empty($this->validationRule['update']))
+            $this->isRequired = false;
+    }
+    public function onlyProcess($true = true)
+    {
+        $this->skip = $true;
+        return $this;
+    }
+    public function ignore($true = true)
+    {
+        $this->storeSkip = $true;
+        return $this;
+    }
+    public function addProcess($process)
+    {
+        $this->process = $process;
+        return $this;
+    }
 
+    public function force($true = true)
+    {
+        $this->forceProcess = $true;
+        return $this;
+    }
+
+    public function setValues($values)
+    {
+        $this->valuesList = $values;
+        return $this;
+    }
+
+    public function setValue($value)
+    {
+        $this->defaultValue = $value;
+        return $this;
+    }
+
+    public function setType($type)
+    {
+        $this->type = $type;
+        return $this;
+    }
+    public function rules($rules)
+    {
+        $this->validationRule = $rules;
+        return $this;
+    }
+
+    public function required($true = true)
+    {
+        $this->isRequired = $true;
+        return $this;
     }
 
     public function addOpt($param,$value)
@@ -44,12 +95,13 @@ class FieldContainer
 
     public function getValue($value)
     {
-        if(is_callable($this->defaultValue))
-            return ($this->defaultValue)($this,$value);
-
+        if(!empty(request()->input($this->name)))
+            return request()->input($this->name);
         if(!empty(old($this->name)))
             return old($this->name);
 
+        if(is_callable($this->defaultValue))
+            return ($this->defaultValue)($this,$value);
 
         if(!empty($this->defaultValue)) {
             $returnValue = $this->defaultValue;
@@ -67,7 +119,7 @@ class FieldContainer
         }
 
         if(!empty($value))
-            return $value->{$this->name};
+            return $value->{$this->name} ?? '';
 
 
         return "";
@@ -78,7 +130,6 @@ class FieldContainer
     public function getView($value)
     {
         $this->defaultValue = $this->getValue($value);
-
 
         if(view()->exists('ariel::types.'.$this->type))
             return view('ariel::types.'.$this->type,['field'=>$this]);

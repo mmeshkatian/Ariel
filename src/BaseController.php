@@ -5,9 +5,12 @@ namespace Mmeshkatian\Ariel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Auth;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Route;
 use File;
+use Config;
 
 
 class BaseController extends Controller
@@ -19,26 +22,29 @@ class BaseController extends Controller
     private $cols = [];
     private $fields = [];
     private $actions = [];
+    private $scripts = [];
     private $queryConditions = [];
     private $ListData = null;
     private $router;
     private $title = '';
     private $BladeSettings = [];
     private $isSingleRow = false;
-
-
     private $mainRoute;
     private $saveRoute;
     private $editRoute;
     private $updateRoute;
     private $createRoute;
+    private $hideMainRoute  = false;
     private $isConfigCalled = false;
 
     protected function set($what,$data)
     {
         $this->$what = $data;
     }
-
+    protected function get($what)
+    {
+        return $this->$what;
+    }
     public function setModel($model)
     {
         $this->set('model',$model);
@@ -54,10 +60,7 @@ class BaseController extends Controller
         $this->set('BladeSettings',$settings);
 
     }
-
     public function configure(){}
-
-
     public function getConfig()
     {
         if($this->isConfigCalled)
@@ -105,13 +108,9 @@ class BaseController extends Controller
 
     }
 
-
     /**
-     *
      * configuration functions
-     *
      */
-
     protected function addColumn($name,$value)
     {
         $this->colNames[] = $name;
@@ -125,16 +124,18 @@ class BaseController extends Controller
     {
         $this->ListData = $data;
     }
-
+    protected function addScript($script,$in = 'all'){
+        $this->scripts [] =  ['script'=>$script,'in'=>$in];
+    }
     protected function addAction($action,$icon,$caption,$defaultParms = [],$accessControlMethod = null,$options = [])
     {
         $this->actions [] = new ActionContainer($action,$icon,$caption,$defaultParms,$accessControlMethod,$options);
     }
-
     protected function addField($name,$caption,$validationRule='',$type='text',$value = '',$values=[],$process='',$processForce=true,$skip = false,$storeSkip = false)
     {
         $arr = new FieldContainer($name,$caption,$validationRule,$type,$value,$values,$process,$processForce,$skip,$storeSkip);
         $this->fields[] = $arr;
+        return end($this->fields);
     }
 
     protected function addHidden($name,$value,$process = null,$forceProcess = false,$skip = false)
@@ -142,12 +143,10 @@ class BaseController extends Controller
 
         $this->addField($name,"","","hidden",$value,[],$process,$forceProcess,$skip);
     }
-
     protected function addProcess($processName,$force = false,$skip = true)
     {
         $this->addHidden($processName,"",$processName,$force,$skip);
     }
-
     protected function validateRequest($request)
     {
         $valid = [];
@@ -186,6 +185,38 @@ class BaseController extends Controller
         }
         $this->validate($request,$valid);
     }
+    public function CRUDPage(callable $config,$data = null,$page = 'index')
+    {
+        $this->getConfig();
+        $this->colNames = [];
+        $this->cols = [];
+        $this->fields = [];
+        $this->actions = [];
+        $this->queryConditions = [];
+        $config();
+        $this->isConfigCalled = true;
+        $request = request();
+        $method = $request->getMethod();
+
+        switch ($page){
+            case 'create':
+                return $this->create();
+            break;
+            case 'edit':
+                return $this->edit($data->id);
+            break;
+            case 'store':
+                return $this->store($request);
+            break;
+            case 'update':
+                return $this->update($request,$data->id);
+            break;
+            default :
+                return $this->index($request);
+
+        }
+
+    }
 
     /**
      * Display a listing of the resource.
@@ -210,7 +241,7 @@ class BaseController extends Controller
         if(!empty($this->ListData)){
             $rows = $this->ListData;
         }else {
-            $rows = $model::where("id", "!=", "N");
+            $rows = $model::orderBy("created_at","desc")->where("id", "!=", "N");
             foreach ($this->queryConditions as $queryCondition) {
                 if(!empty($queryCondition['function'])) {
                     $function = $queryCondition['function'];
@@ -243,17 +274,18 @@ class BaseController extends Controller
 
         $actions = $this->actions;
         $breadcrumbs = [
-            ['name'=>'Administration','link'=>route('admin.dashboard.main')],
+            ['name'=>'مدیریت','link'=>route('admin.dashboard.main')],
             ['name'=>$this->title,'link'=>$this->mainRoute],
-            ['name'=>$this->title.' List','link'=>url()->current()],
+            ['name'=>'لیست '.$this->title,'link'=>url()->current()],
         ];
-        $title = $this->title.' List';
+        $title = 'لیست '.$this->title;
         $mainRoute = $this->mainRoute;
         $saveRoute = $this->saveRoute;
         $data = null;
         $BladeSettings = $this->BladeSettings;
 
-        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions','mainRoute','saveRoute','data','BladeSettings','title'));
+        $scripts = $this->scripts;
+        return view('ariel::index',compact('colNames','cols','fields','rows','createRoute','actions','mainRoute','saveRoute','data','BladeSettings','title','breadcrumbs','scripts'));
     }
 
     /**
@@ -266,17 +298,29 @@ class BaseController extends Controller
         $this->getConfig();
 
         $id = $data->uuid ?? $data->id ?? null;
+        if(!empty($data) && empty($id))
+            $data = null;
         $fields = $this->fields;
         $mainRoute = $this->mainRoute;
-        $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',['id'=>$id]);
+        $parameters = request()->route()->parameters();
+        $extraP = [$id];
+        if(count($parameters) > 1){
+            $extraP[] =Arr::first($parameters);
+
+            $extraP = array_reverse($extraP);
+
+        }
+
+        $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',$extraP);
         $BladeSettings = $this->BladeSettings;
         $breadcrumbs = [
-            ['name'=>'Administration','link'=>route('admin.dashboard.main')],
+            ['name'=>'مدیریت','link'=>route('admin.dashboard.main')],
             ['name'=>$this->title,'link'=>$this->mainRoute],
-            ['name'=> (empty($data) ? 'Create a ' : 'Edit ').$this->title,'link'=>url()->current()],
+            ['name'=> (empty($data) ? 'ثبت ' : 'ویرایش ').$this->title,'link'=>url()->current()],
         ];
-        $title = (empty($data) ? 'Create a ' : 'Edit ').$this->title;
-        return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data','breadcrumbs','title','BladeSettings'));
+        $title = (empty($data) ? 'ثبت ' : 'ویرایش ').$this->title;
+        $script = $this->scripts;
+        return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data','breadcrumbs','title','BladeSettings','script'));
     }
 
     /**
@@ -287,11 +331,14 @@ class BaseController extends Controller
      */
     public function store(Request $request,$data = null,$return = false)
     {
+        $edit = false;
         $this->getConfig();
+        Config::set('ariel.upload_path',public_path(config('ariel.upload_path')));
 
         $this->validateRequest($request);
 
-        if(!empty($data)){
+
+        if(!empty($data) && !empty($data->id)){
             if(is_numeric($data->id))
                 $data = $this->model::where("id",$data->id);
             else
@@ -300,21 +347,25 @@ class BaseController extends Controller
             if($data->count() == 0)
                 return abort(404);
             $data = $data->get()->first();
+            $edit = true;
         }else{
             $data = new $this->model();
         }
 
         $foriegnDataTable = [];
+
         foreach ($this->fields as $field) {
             $thisValue = null;
             $name = $field->name ?? null;
             $process = null;
 
-            try{
+
 
                 //handle skip
-                if ((!empty($field->skip) && $field->skip == true))
+                if ((!empty($field->skip) && $field->skip == true)) {
+
                     continue;
+                }
 
                 //handle Process
                 if (!empty($field->process)) {
@@ -324,11 +375,16 @@ class BaseController extends Controller
                         $thisValue = $this->$process($request, $request->input($field->name));
                     } catch (\Exception $e) {
                         //
-                        if (!empty($field->processForce)) {
-                            return redirect()->back()->with(config('ariel.danger_alert'),__($field->caption." Process failed."));
+                        if (($field->forceProcess)) {
+                            throw ValidationException::withMessages([
+                               $field->name => $e->getMessage()
+                            ]);
+
                         }
                     }
                 }
+
+            try{
                 if((!empty($field->type) && $field->type == 'disable'))
                     continue;
 
@@ -338,7 +394,7 @@ class BaseController extends Controller
                 //handle hidden fields
                 if (!empty($field->type) && $field->type == 'hidden') {
 
-                    $data->$name = (empty($thisValue)) ? $field->value : $thisValue;
+                    $data->$name = (empty($thisValue)) ? $field->defaultValue : $thisValue;
 
                 }elseif (!empty($field->type) && ($field->type == 'file' || $field->type == 'image')) {
 
@@ -393,6 +449,7 @@ class BaseController extends Controller
         try {
             $data->save();
             $foriegnData = [];
+
             foreach ($this->fields as $field) {
                 //handle hasone relations
                 if(\Ariel::exists($field->name,"__hasone__")){
@@ -430,7 +487,7 @@ class BaseController extends Controller
 
                         try {
                             $process = $field->process;
-                            $thisValue = $this->$process($request, $request->input($field->name),$data);
+                            $thisValue = $this->$process($request, $request->input($field->name),$data,$field->name);
                         } catch (\Exception $e) {
                             //
                             if (!empty($field->processForce)) {
@@ -446,14 +503,14 @@ class BaseController extends Controller
             if($return){
                 return $data;
             }else{
-                return redirect($this->mainRoute->getUrl())->with(config('ariel.success_alert'), trans('ariel::ariel.success_text'));
+                return (method_exists($this,'afterStore') ? $this->afterStore($data,$edit) : redirect($this->mainRoute->getUrl()))->with(config('ariel.success_alert'), trans('ariel::ariel.success_text'));
             }
         }catch (\Exception $e){
 
             if(config('app.debug'))
                 dd($e);
             else
-                return redirect($this->mainRoute->getUrl())->with(config('ariel.danger_alert'), trans('ariel::ariel.exception_text'));
+                return (method_exists($this,'afterStore') ? $this->afterStore($data,$edit) : redirect($this->mainRoute->getUrl()))->with(config('ariel.danger_alert'), trans('ariel::ariel.exception_text'));
 
         }
     }
@@ -478,7 +535,13 @@ class BaseController extends Controller
      */
     public function edit($id)
     {
+
         $this->getConfig();
+        $parameters = request()->route()->parameters();
+        if(count($parameters) > 1){
+            $id = end($parameters);
+        }
+
         if(is_numeric($id))
             $data = $this->model::where("id",$id);
         else
@@ -501,6 +564,10 @@ class BaseController extends Controller
     {
         $this->getConfig();
 
+        $parameters = $request->route()->parameters();
+        if(count($parameters) > 1){
+            $id = end($parameters);
+        }
         if(is_numeric($id))
             $data = $this->model::where("id",$id);
         else
@@ -521,6 +588,10 @@ class BaseController extends Controller
     public function destroy(Request $request,$id)
     {
         $this->getConfig();
+        $parameters = $request->route()->parameters();
+        if(count($parameters) > 1){
+            $id = end($parameters);
+        }
         if($request->input('restore') == '1' || $request->input('perm') == '1'){
             try {
                 if (is_numeric($id))
@@ -542,7 +613,7 @@ class BaseController extends Controller
             }
 
 
-            return redirect()->back()->with("success",trans('ariel::ariel.success_text'));
+            return redirect()->back()->with(config('ariel.success_alert'),trans('ariel::ariel.success_text'));
         }
 
         if(is_numeric($id))
@@ -554,6 +625,6 @@ class BaseController extends Controller
             return abort(404);
         $data = $data->get()->first();
         $data->delete();
-        return redirect()->back()->with("success",trans('ariel::ariel.success_text'));
+        return redirect()->back()->with(config('ariel.success_alert'),trans('ariel::ariel.success_text'));
     }
 }
