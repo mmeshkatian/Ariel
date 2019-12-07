@@ -163,110 +163,11 @@
 
 @endsection
 @section('mystyle')
-    <link rel="stylesheet" href="{{asset('vendors/css/tables/datatable/datatables.min.css')}}">
-    <link rel="stylesheet" href="{{ asset(mix('css/pages/data-list-view.css')) }}">
+
 
 @endsection
 @section('myscript')
     @parent
-    <script src="{{asset('vendors/js/tables/datatable/datatables.min.js')}}"></script>
-    <script src="{{asset('vendors/js/tables/datatable/datatables.bootstrap4.min.js')}}"></script>
-    <script src="{{asset(mix('js/scripts/data-list-view.js'))}}"></script>
-    <script>
-        $(".overlay-bg").on("click",function (e) {
-            $(".hide-data-sidebar").click();
-        })
-        $(".addNewData").on("click",function (e) {
-            e.preventDefault();
-            $(".add-new-data").addClass("show");
-            $(".overlay-bg").addClass("show");
-        })
-    </script>
 
-    <script>
-        $(document).ready(function() {
-            @if($errors->count() > 0)
-            $(".addNewData").click();
-            @endif
-            @if(!empty(request()->input('add')))
-            $(".addNewData").click();
-            @endif
-            $('#table').DataTable( {
-
-                select: {
-                    style:    'os',
-                    selector: 'td:first-child'
-                },
-                order: [[ 1, 'asc' ]],
-
-                "lengthMenu": [[20, 50, -1], [20, 50, "All"]],
-                language: {
-                    search: "_INPUT_",
-                    "search": '<i class="fa fa-search"></i>',
-                    "searchPlaceholder": "جستجو",
-                }
-
-
-            } );
-
-
-
-
-        } );
-
-    </script>
-    <script>
-        $('a.ask').on('click', function (e) {
-            var thiis = this;
-            e.preventDefault();
-            Swal.fire({
-                title: 'آیا مطمین هستید ؟',
-                text: "پس از تایید امکان بازگشت این عملیات وجود ندارد.",
-                type: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'تایید',
-                cancelButtonText: 'لغو',
-                confirmButtonClass: 'btn btn-primary ml-1',
-                cancelButtonClass: 'btn btn-danger ml-1',
-                buttonsStyling: false,
-            }).then(function (result) {
-                if (result.value) {
-                    if($(thiis).is('form')){
-                        $(thiis).submit();
-                    }else{
-                        window.location = $(thiis).attr('href');
-                    }
-                }
-            })
-        });
-        $('td>form').on('click', function (e) {
-            e.preventDefault();
-            if(!$(this).hasClass("ask"))
-                return $(this).submit();
-            else {
-                var thiis = this;
-                Swal.fire({
-                    title: 'آیا مطمین هستید ؟',
-                    text: "پس از تایید امکان بازگشت این عملیات وجود ندارد.",
-                    type: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'تایید',
-                    cancelButtonText: 'لغو',
-                    confirmButtonClass: 'btn btn-primary ml-1',
-                    cancelButtonClass: 'btn btn-danger ml-1',
-                    buttonsStyling: false,
-                }).then(function (result) {
-                    if (result.value) {
-                        $(thiis).submit();
-                    }
-                })
-            }
-
-        });
-    </script>
 
 @endsection
