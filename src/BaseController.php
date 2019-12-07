@@ -273,11 +273,8 @@ class BaseController extends Controller
         $rows = $rows->get();
 
         $actions = $this->actions;
-        $breadcrumbs = [
-            ['name'=>'مدیریت','link'=>route('admin.dashboard.main')],
-            ['name'=>$this->title,'link'=>$this->mainRoute],
-            ['name'=>'لیست '.$this->title,'link'=>url()->current()],
-        ];
+        $breadcrumbs = [];
+        
         $title = 'لیست '.$this->title;
         $mainRoute = $this->mainRoute;
         $saveRoute = $this->saveRoute;
@@ -313,11 +310,7 @@ class BaseController extends Controller
 
         $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',$extraP);
         $BladeSettings = $this->BladeSettings;
-        $breadcrumbs = [
-            ['name'=>'مدیریت','link'=>route('admin.dashboard.main')],
-            ['name'=>$this->title,'link'=>$this->mainRoute],
-            ['name'=> (empty($data) ? 'ثبت ' : 'ویرایش ').$this->title,'link'=>url()->current()],
-        ];
+        $breadcrumbs = [];
         $title = (empty($data) ? 'ثبت ' : 'ویرایش ').$this->title;
         $script = $this->scripts;
         return view('ariel::create',compact('fields','mainRoute','saveRoute','id','data','breadcrumbs','title','BladeSettings','script'));
