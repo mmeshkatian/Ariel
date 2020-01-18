@@ -1,27 +1,74 @@
 @extends('vendor.ariel.layout')
 @section('title',$title)
-@section('contenter')
+@section('content')
+    @if(!empty($sections))
+        @foreach($sections as $section)
+            {!! $section->render('index','top') !!}
+        @endforeach
+    @endif
+
+    <section>
+        <!-- Begin Users Profile -->
+        <div class="card search-area" @if(count(request()->all()) == 0 || empty($filters))style="display: none" @endif>
+            <div class="card-body">
+                <form action="" method="get">
+                    <div class="row justify-content-between">
+                        @if(!empty($filters))
+                            @foreach($filters as $filter)
+                                <div class="col-md-6">
+                                    {!! $filter->render() !!}
+                                </div>
+                            @endforeach
+                        @endif
+                    </div>
+                    <button type="submit" class="btn btn-success round waves-effect waves-light">جستجو</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    @parent
+
+    @if(!empty($sections))
+        @foreach($sections as $section)
+            {!! $section->render('index','bottom') !!}
+        @endforeach
+    @endif
+@endsection
+@section('content-inside')
+
+
+    <div class="clearfix"></div>
     <section>
         <!-- Begin Users Profile -->
         <div class="card">
             <div class="card-body">
+
                 <div class="row justify-content-between">
+                    @foreach($batchActions ?? [] as $action)
+                        <a href="#" data-href="{{$action->getUrl()}}" class="btn btn-primary round waves-effect waves-light batchActions" >
+                            {{$action->caption ?? ''}}
+                        </a>
+                    @endforeach
+                    <form class="d-none" id="batchActionsForm" action="" method="post">@csrf <input type="hidden" name="ids" value=""></form>
+                    @if(!($BladeSettings['disableCreate'] ?? false))
+                        <div class="ml-2">
 
-                    <div class="ml-2">
-                        @if(!request()->input('trash') == '1')
-                            @if(($BladeSettings['side'] ?? false))
-                                <a href="#" class="btn btn-primary round waves-effect waves-light addNewData" >
-                                    افزودن
-                                </a>
-                            @else
-                                <a href="{{$createRoute}}" class="btn btn-primary round waves-effect waves-light" >
-                                    افزودن
-                                </a>
-                            @endif
-                        @endif
+                                @if(!request()->input('trash') == '1')
+                                    @if(($BladeSettings['side'] ?? false))
+                                        <a href="#" class="btn btn-primary round waves-effect waves-light addNewData" >
+                                            افزودن
+                                        </a>
+                                    @else
+                                        <a href="{{$createRoute}}" class="btn btn-primary round waves-effect waves-light" >
+                                            افزودن
+                                        </a>
+                                    @endif
+                                @endif
 
-                    </div>
-                    <div class="ml-2">
+
+                        </div>
+                        <div class="ml-2">
                         @if(request()->input('trash') == '1')
                             <a href="{{url()->current()}}" class="btn btn-dark round waves-effect waves-light pull-left" >
                                 بازگشت
@@ -31,8 +78,19 @@
                                 <i class="feather icon-trash"></i>
                             </a>
                         @endif
+                        </div>
+                    @endif
+                    <div class="ml-2">
+                        @if(!empty($filters))
+                        <a data-toggle="tooltip" data-placement="top" title="جستجو" href="#" class="btn btn-success round waves-effect waves-light show-search" >
+                            <i class="feather icon-search"></i>
+                        </a>
+                        @endif
                     </div>
+
+
                 </div>
+
                 <div class="card-dashboard">
                     <div class="table-responsive">
 
@@ -40,8 +98,11 @@
                             <thead>
                             <tr>
                                 <th>ردیف</th>
-                                @foreach($colNames as $col)
-                                    <th>{{$col}}</th>
+                                @if(($BladeSettings['addSelector'] ?? false))
+                                    <th>انتخاب</th>
+                                @endif
+                                @foreach($cols as $col)
+                                    <th>{{$col->getName()}}</th>
                                 @endforeach
                                 @if(!empty($actions))
                                     <th>عملیات</th>
@@ -53,50 +114,20 @@
                             @foreach($rows as $row)
                                 <tr>
                                     <td>{{$i++}}</td>
+                                    @if(($BladeSettings['addSelector'] ?? false))
+                                        <th>{!! (new \Mmeshkatian\Ariel\FieldContainer('_ids',''))->setType('ncheckbox')->setValue($row->id)->getView(null,false)  !!} </th>
+                                    @endif
                                     @foreach($cols as $col)
-                                        @if(strpos($col,"ToNFT") !== false)
-                                            <?php
-                                            $col = explode("ToNFT",$col)[0] ?? 'n';
-                                            ?>
-                                            <td>{!! (@number_format($row->$col ?? '0')." ".config('ariel.number_format_postfix'))  !!}</td>
-                                        @elseif(strpos($col,"ToPC") !== false)
-                                            <?php
-                                            $col = explode("ToPC",$col)[0] ?? 'n';
-                                            ?>
-                                            <td>{!! (@number_format($row->$col ?? '0')." %")  !!}</td>
-                                        @elseif(strpos($col,"ToTEXT") !== false)
-                                            <?php
-                                            $col = explode("ToTEXT",$col)[0] ?? 'n';
-                                            $value = \Ariel::getdata($col,"ToTEXT");
-
-                                            $field = \Ariel::searchIn($fields,"name",$value);
-
-                                            $_value = $row->$col;
-                                            $_value = json_decode($_value) ?? $_value;
-                                            if(is_array($_value)){
-                                                $val = '';
-                                                $i = 0;
-                                                foreach ($_value as $v) {
-                                                    $i++;
-                                                    $val .= ($field->valuesList[$v] ?? '-') .(count($_value) == $i ? '' : ' - ');
-                                                }
-                                            }else
-                                                $val = $field->valuesList[$row->$col] ?? '-';
-
-                                            ?>
-                                            <td>{!! $val ?? '' !!}</td>
-                                        @else
-                                            <td>{!! $row->$col !!}</td>
-                                        @endif
+                                        <td>{!! $col->getValue($row) !!}</td>
                                     @endforeach
                                     @if(!empty($actions))
-                                        <td>
+                                        <td class="d-flex">
                                             @foreach($actions as $action)
                                                 @continue(!$action->hasAccess($row))
                                                 @if($action->isGet())
-                                                    <a data-toggle="tooltip" class="{{$action->options['class'] ?? ''}}" data-placement="top" title="{{$action->caption ?? ''}}" style="margin-left: 10px" href="{{(empty($row->uuid) ? $action->addParam("id",$row->id)->getUrl() : $action->addParam("uuid",$row->uuid)->getUrl())}}">{!! $action->icon ?? '' !!}</a>
+                                                    <a data-toggle="tooltip" class="{{$action->options['class'] ?? ''}}" data-placement="top" title="{{$action->caption ?? ''}}" style="margin-left: 10px" href="{{$action->getUrl($row)}}">{!! $action->icon ?? '' !!}</a>
                                                 @else
-                                                    <form data-toggle="tooltip" data-placement="top"  class="{{$action->options['class'] ?? ''}}" title="{{$action->caption ?? ''}}" style="margin-left: 10px;display: inline" method="post" action="{{(empty($row->uuid) ? $action->addParam("id",$row->id)->getUrl() : $action->addParam("uuid",$row->uuid)->getUrl())}}">
+                                                    <form data-toggle="tooltip" data-placement="top"  class="{{$action->options['class'] ?? ''}}" title="{{$action->caption ?? ''}}" style="margin-left: 10px;display: inline" method="post" action="{{$action->getUrl($row)}}">
                                                         @method($action->method)
                                                         @csrf
                                                         {!! $action->icon ?? '' !!}
@@ -161,10 +192,18 @@
         </div>
     </section>
 
+
+
 @endsection
 @section('mystyle')
     <link rel="stylesheet" href="{{asset('vendors/css/tables/datatable/datatables.min.css')}}">
     <link rel="stylesheet" href="{{ asset(mix('css/pages/data-list-view.css')) }}">
+
+    @if(!empty($sections))
+        @foreach($sections as $section)
+            {!! $section->getStyle('index') !!}
+        @endforeach
+    @endif
 
 @endsection
 @section('myscript')
@@ -184,6 +223,9 @@
     </script>
 
     <script>
+        $(".show-search").on("click",function (e) {
+            $(".search-area").toggle(1);
+        });
         $(document).ready(function() {
             @if($errors->count() > 0)
             $(".addNewData").click();
@@ -191,31 +233,47 @@
             @if(!empty(request()->input('add')))
             $(".addNewData").click();
             @endif
-            $('#table').DataTable( {
+            $('#table').DataTable({
 
                 select: {
                     style:    'os',
                     selector: 'td:first-child'
                 },
-                order: [[ 1, 'asc' ]],
+                order: [[ 0, 'asc' ]],
 
-                "lengthMenu": [[20, 50, -1], [20, 50, "All"]],
+                "lengthMenu": [[50, 100, -1], [50, 100, "All"]],
                 language: {
                     search: "_INPUT_",
                     "search": '<i class="fa fa-search"></i>',
                     "searchPlaceholder": "جستجو",
                 }
-
-
-            } );
-
-
-
-
-        } );
-
+            });
+        });
     </script>
     <script>
+        $(".batchActions").on("click",function (e) {
+            e.preventDefault();
+            var data = [];
+            $("input[type=checkbox]:checked").each(function(val){
+                data.push($(this).val());
+            });
+            if(data.length == 0){
+                Swal.fire({
+                    title: 'پیام',
+                    text: 'لطفا حداقل یک رکورد اضافه کنید',
+                    type: 'error',
+                    showCancelButton: false,
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'Ok',
+                    confirmButtonClass: 'btn btn-primary',
+                    buttonsStyling: false,
+                });
+                return;
+            }
+            $("input[name=ids]").val(JSON.stringify(data));
+            $("#batchActionsForm").attr('action',$(".batchActions").data('href'));
+            $("#batchActionsForm").submit();
+        });
         $('a.ask').on('click', function (e) {
             var thiis = this;
             e.preventDefault();
@@ -268,5 +326,11 @@
 
         });
     </script>
+
+    @if(!empty($sections))
+        @foreach($sections as $section)
+            {!! $section->getScript('index') !!}
+        @endforeach
+    @endif
 
 @endsection

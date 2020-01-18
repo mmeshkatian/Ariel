@@ -20,4 +20,14 @@ class ArielService
         }
         return false;
     }
+    public function listenScript()
+    {
+        ob_start();
+    }
+
+    public function setScript()
+    {
+        $script = ob_get_clean();
+        return $script;
+    }
 }

@@ -1,10 +1,8 @@
-<div class="col-12">
-    <div class="form-group row">
-        <div class="col-md-4">
-            <span>{{$field->caption ?? ''}}</span>
-        </div>
-        <div class="col-md-8">
-            {!! $field->defaultValue !!}
-        </div>
+@section('input')
+    <div id="{{$field->name ?? ''}}">
+        {!! $field->defaultValue !!}
     </div>
-</div>
+@overwrite
+@section('caption')
+    <span>{{$field->caption ?? ''}}</span>
+@overwrite

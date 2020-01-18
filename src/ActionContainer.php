@@ -1,7 +1,7 @@
 <?php
 
 namespace Mmeshkatian\Ariel;
-use Illuminate\Routing\Exceptions\UrlGenerationException;
+use Illuminate\Support\Str;
 use Route;
 
 class ActionContainer
@@ -13,11 +13,12 @@ class ActionContainer
     var $icon;
     var $caption;
     var $url;
-    var $defaultParms;
+    var $defaultParams;
     var $options;
 
-    public function __construct($action,$icon = '',$caption = '',$defaultParms = [],$accessControlMethod = null,$options = [])
+    public function __construct($action,$icon = '',$caption = '',$defaultParams = [],$accessControlMethod = null,$options = [])
     {
+
         $this->router = \Route::getRoutes()->getByName($action);
         if(empty($this->router))
             throw new \Exception("Route Not Defined {$action}");
@@ -26,7 +27,7 @@ class ActionContainer
         $this->method = in_array("GET",$this->router->methods()) ? 'GET' : ($this->router->methods()[0] ?? 'GET');
         $this->icon = $icon;
         $this->caption = $caption;
-        $this->defaultParms = $defaultParms;
+        $this->defaultParams = $defaultParams;
         $this->accessControlMethod = $accessControlMethod;
         $this->options = $options;
         //$this->url = $this->getUrl();
@@ -34,8 +35,8 @@ class ActionContainer
 
     public function addParam($param,$value)
     {
-        $this->defaultParms[$param] = $value;
-        $this->defaultParms = array_reverse($this->defaultParms);
+        $this->defaultParams[$param] = $value;
+        $this->defaultParams = array_reverse($this->defaultParams);
         return $this;
     }
 
@@ -51,43 +52,25 @@ class ActionContainer
         return $this->method == 'GET';
     }
 
-
-    public function getUrl()
+    public function getUrl($data = null)
     {
+        $defaultParams = [];
         $paramNames = $this->router->parameterNames();
 
-
-//        if(count($paramNames) > count($this->defaultParms)){
-//            $remain = count($paramNames) - count($this->defaultParms);
-//            for($i=1;$i <= $remain;$i++){
-//                $this->defaultParms[] = 'NA';
-//            }
-//        }
-
-        try {
-            if(count($paramNames) > count($this->defaultParms))
-                throw new UrlGenerationException("rq");
-            $route = route($this->action, $this->defaultParms);
-
-            return $route;
-        }catch (UrlGenerationException $e){
-
-            //try to set parameters
-            if(count($paramNames) > 0){
-                //missing required parameter
-                $this->defaultParms = array_reverse(array_values(array_merge($this->defaultParms,array_values(request()->route()->parameters()))));
-                if(count($paramNames) == '1'){
-                    $this->defaultParms = [end($this->defaultParms)];
-                }
+        foreach ($this->defaultParams as $p=>$v){
+            if(Str::contains($v,"$")) {
+                $par = str_replace("$", "", $v);
+                $defaultParams[$p] = $data->$par;
+            }else{
+                $defaultParams[$p] = $v;
             }
-
-
-        }catch (\Exception $e){
-
         }
-        $route = route($this->action, $this->defaultParms);
-        return $route;
-    }
+//        $this->defaultParams = $defaultParams;
+
+
+        $route = route($this->action,$defaultParams);
+            return $route;
+        }
 
     public function getIcon()
     {

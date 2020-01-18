@@ -9,8 +9,7 @@ class ArielServiceProvider extends ServiceProvider
 
     public function register()
     {
-
-        $this->app->make('Mmeshkatian\Ariel\BaseController');
+//        $this->app->make('Mmeshkatian\Ariel\BaseController');
         $this->app->singleton('ariel', function () {
             return new ArielService();
         });
@@ -19,7 +18,7 @@ class ArielServiceProvider extends ServiceProvider
     public function boot()
     {
         include __DIR__.'/routes.php';
-        $this->loadViewsFrom(__DIR__.'/views', 'ariel');
+        include __DIR__.'/directives.php';
 
         $this->publishes([
             __DIR__ . '/config.php' => config_path('ariel.php'),
@@ -28,6 +27,7 @@ class ArielServiceProvider extends ServiceProvider
 
         ]);
         $this->loadTranslationsFrom(__DIR__.'/translations', 'ariel');
+        $this->loadViewsFrom(__DIR__.'/views', 'ariel');
 
     }
 }
