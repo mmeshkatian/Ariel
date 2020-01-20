@@ -301,9 +301,8 @@ class BaseController extends Controller
         $rows = $rows->get();
 
         $breadcrumbs = [
-            ['name'=>'DearTime','link'=>route('admin.dashboard.main')],
             ['name'=>$this->title,'link'=>$this->mainRoute],
-            ['name'=>$this->title.' List','link'=>url()->current()],
+            ['name'=>$this->title.' لیست','link'=>url()->current()],
         ];
         $title = 'لیست '.$this->title;
         $mainRoute = $this->mainRoute;
