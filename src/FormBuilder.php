@@ -14,6 +14,7 @@ class FormBuilder {
     var $fields = [];
     var $fullRender = false;
     var $route = '';
+    var $title = '';
     var $breadcrumbs = [];
 
     /**
@@ -64,6 +65,11 @@ class FormBuilder {
         $this->fields = $data;
     }
 
+    public function setTile($title)
+    {
+        $this->title = $title;
+    }
+
     /**
      * @param null $data
      * @param null $script
@@ -74,8 +80,9 @@ class FormBuilder {
     {
         $fields =  $this->fields;
         $saveRoute = $this->route;
-
-        return view($this->fullRender ? 'vendor.ariel.create' : 'vendor.ariel.fields',compact('fields','data','saveRoute','script','breadcrumbs','sections'));
+        $title = $this->title;
+        
+        return view($this->fullRender ? 'vendor.ariel.create' : 'vendor.ariel.fields',compact('fields','data','saveRoute','script','breadcrumbs','sections','title'));
     }
 
     public function store($model)
