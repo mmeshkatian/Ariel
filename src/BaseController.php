@@ -300,7 +300,11 @@ class BaseController extends Controller
         }
         $rows = $rows->get();
 
-        $breadcrumbs = [];
+        $breadcrumbs = [
+            ['name'=>'DearTime','link'=>route('admin.dashboard.main')],
+            ['name'=>$this->title,'link'=>$this->mainRoute],
+            ['name'=>$this->title.' List','link'=>url()->current()],
+        ];
         $title = 'لیست '.$this->title;
         $mainRoute = $this->mainRoute;
         $saveRoute = $this->saveRoute;
@@ -338,7 +342,10 @@ class BaseController extends Controller
 
         $saveRoute = empty($data) ? $this->saveRoute : new ActionContainer($this->RoutePrefix.'.'.Router::UPDATE,'','',$extraP);
         $BladeSettings = $this->BladeSettings;
-        $breadcrumbs = [];
+        $breadcrumbs = [
+            ['name'=>$this->title,'link'=>$this->mainRoute],
+            ['name'=> (empty($data) ? 'ثبت ' : 'ویرایش ').$this->title,'link'=>url()->current()],
+        ];
         $title = (empty($data) ? 'ثبت ' : 'ویرایش ').$this->title;
         $script = $this->scripts;
         $formBuilder = new FormBuilder(true,$saveRoute);
