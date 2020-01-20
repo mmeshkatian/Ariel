@@ -9,15 +9,21 @@ class ColumnContainer
     var $name;
     var $value;
     var $class;
+    var $width;
 
-    public function __construct($name,$value,$class)
+    public function __construct($name,$value,$class,$width = null)
     {
         $this->name = $name;
         $this->value = $value;
         $this->class = app($class);
+        $this->width = $width;
 
     }
 
+    public function getWidth()
+    {
+        return $this->width;
+    }
     public function getName()
     {
         return $this->name;
