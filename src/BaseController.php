@@ -127,9 +127,9 @@ class BaseController extends Controller
             $this->createRoute = new ActionContainer($this->RoutePrefix.'.'.Router::CREATE,'','',$RouteParameters);
 
     }
-    protected function addColumn($name,$value)
+    protected function addColumn($name,$value,$width = null)
     {
-        $this->cols[] = new ColumnContainer($name,$value,get_class($this));
+        $this->cols[] = new ColumnContainer($name,$value,get_class($this),$width);
     }
     protected function addQueryCondition($function,$data)
     {
@@ -298,7 +298,7 @@ class BaseController extends Controller
                 $this->addAction($this->RoutePrefix . '.destroy', '<i class="feather icon-trash"></i>', 'Permanent Delete', ['$id','perm' => '1'], null, ['class' => 'ask']);
             }
         }
-        $rows = $rows->get();
+        $rows = $rows->paginate(20);
 
         $breadcrumbs = [
             ['name'=>$this->title,'link'=>$this->mainRoute],
