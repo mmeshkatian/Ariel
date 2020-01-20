@@ -302,7 +302,7 @@ class BaseController extends Controller
 
         $breadcrumbs = [
             ['name'=>$this->title,'link'=>$this->mainRoute],
-            ['name'=>$this->title.' لیست','link'=>url()->current()],
+            ['name'=>' لیست'.$this->title,'link'=>url()->current()],
         ];
         $title = 'لیست '.$this->title;
         $mainRoute = $this->mainRoute;
