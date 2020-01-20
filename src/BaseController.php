@@ -343,7 +343,9 @@ class BaseController extends Controller
         $script = $this->scripts;
         $formBuilder = new FormBuilder(true,$saveRoute);
         $formBuilder->setFields($this->fields);
+        $formBuilder->setTile($title);
         $sections = $this->sections;
+
         foreach ($sections as $section)
             $section->compile($data);
 
