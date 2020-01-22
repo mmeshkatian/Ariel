@@ -154,13 +154,21 @@ class FieldContainer
         return config('ariel.default_container');
     }
 
-    public function getView($value,$withContainer = true)
+    public function getSections()
     {
-        $this->defaultValue = $this->getValue($value);
         if(view()->exists('ariel::types.'.$this->type))
             $input =  view('ariel::types.'.$this->type,['field'=>$this])->renderSections();
         else
             $input = view('ariel::types.text',['field'=>$this])->renderSections();
+        
+        return $input;
+    }
+    public function getView($value,$withContainer = true)
+    {
+        $this->defaultValue = $this->getValue($value);
+        
+        $input = $this->getSections();
+        
 
         $caption = $input['caption'] ?? '';
         $input = $input['input'] ?? '';
@@ -226,7 +234,8 @@ class FieldContainer
 
     public function renderScript()
     {
-        $out = '';
+        $script_section = $this->getSections()['script'] ?? '';
+        $out = $script_section;
         foreach ($this->scripts as $script) {
             $out .= $script;
         }
